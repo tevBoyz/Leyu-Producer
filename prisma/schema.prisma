@@ -1,0 +1,60 @@
+// Local SQLite database for producer episode authoring only.
+// NOT the live MySQL `questions` database used by the operator dashboard.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Episode {
+  id            String        @id @default(cuid())
+  title         String
+  slug          String        @unique
+  description   String?
+  producerName  String?
+  appVersion    String
+  exportVersion String
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  stageConfigs  StageConfig[]
+  questions     Question[]
+}
+
+model StageConfig {
+  id            String  @id @default(cuid())
+  episodeId     String
+  episode       Episode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  stageNo       Int
+  label         String
+  questionCount Int
+  sortOrder     Int
+
+  @@unique([episodeId, stageNo])
+}
+
+model Question {
+  id                String   @id @default(cuid())
+  episodeId         String
+  episode           Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  stageNo           Int
+  questionNo        Int
+  choiceOne         String   @default("")
+  choiceTwo         String   @default("")
+  choiceThree       String   @default("")
+  choiceFour        String   @default("")
+  actualAnswer      String   @default("")
+  point             Int      @default(0)
+  category          String?
+  questionType      String   @default("normal")
+  questionMusicPath String?
+  answerMusicPath   String?
+  imagePath         String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([episodeId, stageNo, questionNo])
+}

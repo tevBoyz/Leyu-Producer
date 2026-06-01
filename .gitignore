@@ -1,0 +1,9 @@
+node_modules/
+out/
+dist/
+.DS_Store
+Thumbs.db
+*.log
+prisma/dev.db
+prisma/dev.db-journal
+**/producer-data/
