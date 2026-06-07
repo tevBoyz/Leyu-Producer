@@ -6,6 +6,12 @@ export const APP_VERSION = '0.1.0'
 /** Episode package format version — bump when manifest or export layout changes. */
 export const EXPORT_VERSION = '1.0.0'
 
+/**
+ * Live dashboard Episode Import expects this integer in manifest.json formatVersion.
+ * Supported by the legacy importer: 1 only. Do not use semver strings here.
+ */
+export const PACKAGE_FORMAT_VERSION = 1
+
 /** Default number of question slots per stage when creating a new episode. */
 export const DEFAULT_STAGE_COUNTS = {
   stage1: 15,

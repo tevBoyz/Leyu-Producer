@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { IPC_CHANNELS } from '../shared/ipc-channels'
 import type { IpcResponse } from '../shared/ipc-response'
+import type { ExportProgressEvent } from '../shared/export-progress'
 import type { ProducerApi } from '../shared/producer-api'
 import type { ValidationResult } from '../shared/validation'
 
@@ -32,7 +33,22 @@ const producerApi: ProducerApi = {
     ping: () => invokeIpc<{ ok: boolean; message: string }>(IPC_CHANNELS.app.ping),
     isPackaged: () => invokeIpc<boolean>(IPC_CHANNELS.app.isPackaged),
     getLogFilePath: () => invokeIpc<string>(IPC_CHANNELS.app.getLogFilePath),
-    openLogsFolder: () => invokeIpc<void>(IPC_CHANNELS.app.openLogsFolder)
+    openLogsFolder: () => invokeIpc<void>(IPC_CHANNELS.app.openLogsFolder),
+    getStartupStatus: () => invokeIpc(IPC_CHANNELS.app.getStartupStatus)
+  },
+
+  window: {
+    isFullScreen: () => invokeIpc<boolean>(IPC_CHANNELS.window.isFullScreen),
+    toggleFullScreen: () => invokeIpc<boolean>(IPC_CHANNELS.window.toggleFullScreen),
+    subscribeFullScreenChanged: (listener) => {
+      const handler = (_event: Electron.IpcRendererEvent, isFullScreen: boolean) => {
+        listener(isFullScreen)
+      }
+      ipcRenderer.on(IPC_CHANNELS.window.fullScreenChanged, handler)
+      return () => {
+        ipcRenderer.removeListener(IPC_CHANNELS.window.fullScreenChanged, handler)
+      }
+    }
   },
 
   episodes: {
@@ -80,7 +96,21 @@ const producerApi: ProducerApi = {
     invokeIpc(IPC_CHANNELS.export.chooseDestination, defaultName),
 
   exportEpisode: (episodeId, destinationPath) =>
-    invokeIpc(IPC_CHANNELS.export.exportEpisode, episodeId, destinationPath)
+    invokeIpc(IPC_CHANNELS.export.exportEpisode, episodeId, destinationPath),
+
+  subscribeExportProgress: (listener) => {
+    const handler = (_event: Electron.IpcRendererEvent, progress: ExportProgressEvent) => {
+      listener(progress)
+    }
+    ipcRenderer.on(IPC_CHANNELS.export.progress, handler)
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.export.progress, handler)
+    }
+  },
+
+  showExportInFolder: (zipPath) => invokeIpc<void>(IPC_CHANNELS.export.showInFolder, zipPath),
+
+  openExportFolder: (zipPath) => invokeIpc<void>(IPC_CHANNELS.export.openFolder, zipPath)
 }
 
 contextBridge.exposeInMainWorld('producerApi', producerApi)

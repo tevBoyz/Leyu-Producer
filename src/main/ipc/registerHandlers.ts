@@ -1,4 +1,4 @@
-import { app } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import { IPC_CHANNELS } from '../../shared/ipc-channels'
 import type {
   CreateEpisodeInput,
@@ -13,7 +13,9 @@ import * as validation from '../validation/validationService'
 import * as importCompatibility from '../services/importCompatibilityService'
 import * as developerService from '../services/developerService'
 import * as exportService from '../services/exportService'
-import { handleIpc } from './ipcHandler'
+import { showExportInFolder, openExportFolder } from '../services/shellService'
+import * as startupService from '../services/startupService'
+import { handleIpc, ipcFailure, ipcSuccess } from './ipcHandler'
 import { getLogFilePath, openLogsFolder } from '../services/loggerService'
 import * as settingsService from '../services/settingsService'
 
@@ -27,6 +29,23 @@ export function registerIpcHandlers(): void {
   handleIpc(IPC_CHANNELS.app.isPackaged, () => app.isPackaged)
   handleIpc(IPC_CHANNELS.app.getLogFilePath, () => getLogFilePath())
   handleIpc(IPC_CHANNELS.app.openLogsFolder, () => openLogsFolder())
+  handleIpc(IPC_CHANNELS.app.getStartupStatus, () => startupService.getStartupStatus())
+
+  handleIpc(IPC_CHANNELS.window.isFullScreen, () => {
+    const window = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]
+    return window?.isFullScreen() ?? false
+  })
+
+  handleIpc(IPC_CHANNELS.window.toggleFullScreen, () => {
+    const window = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]
+    if (!window) {
+      return false
+    }
+
+    const next = !window.isFullScreen()
+    window.setFullScreen(next)
+    return next
+  })
 
   handleIpc(IPC_CHANNELS.episodes.create, (input: CreateEpisodeInput) => db.createEpisode(input))
   handleIpc(IPC_CHANNELS.episodes.list, () => db.listEpisodes())
@@ -81,7 +100,29 @@ export function registerIpcHandlers(): void {
     exportService.chooseExportDestination(defaultName)
   )
 
-  handleIpc(IPC_CHANNELS.export.exportEpisode, (episodeId: string, destinationPath: string) =>
-    exportService.exportEpisode(episodeId, destinationPath)
+  ipcMain.handle(
+    IPC_CHANNELS.export.exportEpisode,
+    async (event, episodeId: string, destinationPath: string) => {
+      try {
+        const data = await exportService.exportEpisode(
+          episodeId,
+          destinationPath,
+          (progress) => {
+            if (!event.sender.isDestroyed()) {
+              event.sender.send(IPC_CHANNELS.export.progress, progress)
+            }
+          }
+        )
+        return ipcSuccess(data, data.validation)
+      } catch (error) {
+        return ipcFailure(error)
+      }
+    }
   )
+
+  handleIpc(IPC_CHANNELS.export.showInFolder, (zipPath: string) =>
+    showExportInFolder(zipPath)
+  )
+
+  handleIpc(IPC_CHANNELS.export.openFolder, (zipPath: string) => openExportFolder(zipPath))
 }

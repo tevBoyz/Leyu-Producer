@@ -1,16 +1,15 @@
-import { app } from 'electron'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
-import { join } from 'path'
 import { getRuntimeDatabaseUrl } from './client'
+import { getUnpackedResourcePath } from './appPaths'
 import { logError, logInfo } from '../services/loggerService'
 
 const execFileAsync = promisify(execFile)
 
 /** Apply pending Prisma migrations to the runtime SQLite database. */
 export async function runMigrations(): Promise<void> {
-  const schemaPath = join(app.getAppPath(), 'prisma', 'schema.prisma')
-  const prismaCli = join(app.getAppPath(), 'node_modules', 'prisma', 'build', 'index.js')
+  const schemaPath = getUnpackedResourcePath('prisma', 'schema.prisma')
+  const prismaCli = getUnpackedResourcePath('node_modules', 'prisma', 'build', 'index.js')
   const databaseUrl = getRuntimeDatabaseUrl()
 
   logInfo('database.migrate.start', 'Running Prisma migrations for runtime SQLite database.', {

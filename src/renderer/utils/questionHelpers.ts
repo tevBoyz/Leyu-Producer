@@ -1,4 +1,5 @@
 import type { Question } from '../../shared/question'
+import { areChoicesRequiredForStage } from '../../shared/question-rules'
 import type { QuestionType } from '../../shared/question-type'
 import type { StageConfig } from '../../shared/stage-config'
 
@@ -45,14 +46,14 @@ export function questionsForStage(questions: Question[], stageNo: number): Quest
 }
 
 export function isQuestionComplete(q: Question): boolean {
-  return (
-    q.choiceOne.trim() !== '' &&
-    q.choiceTwo.trim() !== '' &&
-    q.choiceThree.trim() !== '' &&
-    q.choiceFour.trim() !== '' &&
-    q.actualAnswer.trim() !== '' &&
-    q.point > 0
-  )
+  const choicesOk =
+    !areChoicesRequiredForStage(q.stageNo) ||
+    (q.choiceOne.trim() !== '' &&
+      q.choiceTwo.trim() !== '' &&
+      q.choiceThree.trim() !== '' &&
+      q.choiceFour.trim() !== '')
+
+  return choicesOk && q.actualAnswer.trim() !== '' && q.point > 0
 }
 
 export interface QuestionFormErrors {
@@ -107,10 +108,12 @@ export function validateQuestionForm(
     }
   }
 
-  if (!values.choiceOne.trim()) errors.choiceOne = 'Required'
-  if (!values.choiceTwo.trim()) errors.choiceTwo = 'Required'
-  if (!values.choiceThree.trim()) errors.choiceThree = 'Required'
-  if (!values.choiceFour.trim()) errors.choiceFour = 'Required'
+  if (areChoicesRequiredForStage(values.stageNo)) {
+    if (!values.choiceOne.trim()) errors.choiceOne = 'Required'
+    if (!values.choiceTwo.trim()) errors.choiceTwo = 'Required'
+    if (!values.choiceThree.trim()) errors.choiceThree = 'Required'
+    if (!values.choiceFour.trim()) errors.choiceFour = 'Required'
+  }
 
   if (!values.actualAnswer.trim()) {
     errors.actualAnswer = 'Select or enter the correct answer.'

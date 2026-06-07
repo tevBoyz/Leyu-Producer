@@ -1,4 +1,8 @@
-import type { Episode as EpisodeRow, Question as QuestionRow, StageConfig as StageConfigRow } from '@prisma/client'
+import type {
+  Episode as EpisodeRow,
+  Question as QuestionRow,
+  StageConfig as StageConfigRow
+} from '../../../generated/prisma'
 import type { Episode } from '../../shared/episode'
 import type { Question } from '../../shared/question'
 import type { QuestionType } from '../../shared/question-type'

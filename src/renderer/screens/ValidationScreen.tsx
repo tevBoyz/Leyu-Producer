@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ValidationIssue, ValidationResult } from '../../shared/validation'
 import { Alert } from '../components/Alert'
 import { PlaceholderScreen } from './PlaceholderScreen'
 
 interface Props {
   episodeId: string | null
+  onGoToEpisodes?: () => void
 }
 
 type SeverityFilter = 'all' | 'error' | 'warning'
@@ -47,7 +48,7 @@ function toProducerMessage(issue: ValidationIssue): string {
   return codeMap[issue.code] ? `${codeMap[issue.code]} ${issue.message}` : issue.message
 }
 
-export function ValidationScreen({ episodeId }: Props): React.ReactElement {
+export function ValidationScreen({ episodeId, onGoToEpisodes }: Props): React.ReactElement {
   const [episodeTitle, setEpisodeTitle] = useState<string | null>(null)
   const [episodeSlug, setEpisodeSlug] = useState<string | null>(null)
   const [result, setResult] = useState<ValidationResult | null>(null)
@@ -55,6 +56,21 @@ export function ValidationScreen({ episodeId }: Props): React.ReactElement {
   const [error, setError] = useState('')
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>('all')
   const [stageFilter, setStageFilter] = useState<string>('all')
+
+  const runValidation = useCallback(async (): Promise<void> => {
+    if (!episodeId) return
+    setRunning(true)
+    setError('')
+    try {
+      const validation = await window.producerApi.validateEpisode(episodeId)
+      setResult(validation)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Validation failed')
+      setResult(null)
+    } finally {
+      setRunning(false)
+    }
+  }, [episodeId])
 
   useEffect(() => {
     if (!episodeId) {
@@ -68,22 +84,9 @@ export function ValidationScreen({ episodeId }: Props): React.ReactElement {
       setEpisodeTitle(detail?.episode.title ?? null)
       setEpisodeSlug(detail?.episode.slug ?? null)
     })
-  }, [episodeId])
 
-  async function runValidation(): Promise<void> {
-    if (!episodeId) return
-    setRunning(true)
-    setError('')
-    try {
-      const validation = await window.producerApi.validateEpisode(episodeId)
-      setResult(validation)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Validation failed')
-      setResult(null)
-    } finally {
-      setRunning(false)
-    }
-  }
+    void runValidation()
+  }, [episodeId, runValidation])
 
   const filteredIssues = useMemo(() => {
     if (!result) return []
@@ -105,8 +108,10 @@ export function ValidationScreen({ episodeId }: Props): React.ReactElement {
   if (!episodeId) {
     return (
       <PlaceholderScreen
-        title="Validate"
-        description="Select an episode from the Episodes list and click Validate."
+        title="No episode selected"
+        description="Validation checks your local episode and media files before export. Select an episode from Episodes first."
+        actionLabel={onGoToEpisodes ? 'Go to Episodes' : undefined}
+        onAction={onGoToEpisodes}
       />
     )
   }

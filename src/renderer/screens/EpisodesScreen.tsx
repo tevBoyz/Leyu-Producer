@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { Episode } from '../../shared/episode'
 import { Alert } from '../components/Alert'
+import { EmptyState } from '../components/EmptyState'
 import { formatDateTime } from '../utils/formatDate'
 
 interface Props {
@@ -26,9 +27,6 @@ export function EpisodesScreen({
 }: Props): React.ReactElement {
   const [episodes, setEpisodes] = useState<Episode[]>([])
   const [loading, setLoading] = useState(true)
-  const [developerMode, setDeveloperMode] = useState(false)
-  const [creatingDemo, setCreatingDemo] = useState(false)
-  const [appVersion, setAppVersion] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
@@ -48,22 +46,6 @@ export function EpisodesScreen({
   useEffect(() => {
     void loadEpisodes()
   }, [loadEpisodes, refreshKey])
-
-  useEffect(() => {
-  async function loadAppInfo() {
-    const appApi = window.producerApi?.app;
-
-    if (!appApi) {
-      console.warn("window.producerApi.app is not available");
-      return;
-    }
-
-    const version = await appApi.getVersion();
-    setAppVersion(version);
-  }
-
-  loadAppInfo();
-}, []);
 
   async function handleDelete(episode: Episode): Promise<void> {
     if (
@@ -87,85 +69,43 @@ export function EpisodesScreen({
     }
   }
 
-  async function handleCreateDemoEpisode(): Promise<void> {
-    if (
-      !confirm(
-        'Create a developer demo episode with placeholder questions and placeholder media?\n\nThis adds a new local demo episode and will not overwrite existing episodes.'
-      )
-    ) {
-      return
-    }
-
-    setCreatingDemo(true)
-    setSuccess('')
-    setError('')
-
-    try {
-      const result = await window.producerApi.createDemoEpisode()
-      setSuccess(
-        `Created demo episode "${result.title}" with ${result.questionCount} questions. Demo media lives in ${result.mediaDirectory}.`
-      )
-      await loadEpisodes()
-      onDataChanged?.()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to create demo episode')
-    } finally {
-      setCreatingDemo(false)
-    }
-  }
-
   return (
-    <section className="screen">
+    <section className="screen episodes-screen">
       <div className="screen-header">
         <div>
           <h2>Episodes</h2>
-          <p className="muted">Local SQLite episodes only, not the live show database.</p>
+          <p className="muted">
+            Your local episode library. Pick one to edit questions, validate, and export a ZIP for
+            the live show PC.
+          </p>
         </div>
         <button type="button" className="btn btn--primary" onClick={onCreate}>
-          Create Episode
+          Create episode
         </button>
       </div>
 
       <Alert variant="error" message={error} />
       <Alert variant="success" message={success} />
 
-      {developerMode && (
-        <section className="card dev-tools-card">
-          <div className="dev-tools-card__header">
-            <div>
-              <h3>Developer Demo Data</h3>
-              <p className="muted">
-                Developer-only helper for quickly testing UI, validation, compatibility preview,
-                and export behavior.
-              </p>
-              <p className="muted">
-                Warning: this creates clearly marked demo content with placeholder media. It is
-                local-only and not production data.
-              </p>
-            </div>
-            <button
-              type="button"
-              className="btn"
-              onClick={() => void handleCreateDemoEpisode()}
-              disabled={creatingDemo}
-            >
-              {creatingDemo ? 'Generating Demo Episode...' : 'Generate Demo Episode'}
-            </button>
-          </div>
-        </section>
+      {loading && (
+        <div className="loading-panel">
+          <div className="startup-spinner" aria-hidden="true" />
+          <p className="muted">Loading episodes…</p>
+        </div>
       )}
 
-      {loading && <p className="muted">Loading episodes...</p>}
-
       {!loading && episodes.length === 0 && (
-        <div className="placeholder-card">
-          <p>No episodes yet. Create one to get started.</p>
-        </div>
+        <EmptyState
+          title="No episodes yet"
+          description="Create your first episode to set stage counts and start authoring questions. When you're ready, validate and export a ZIP package for import on the show PC."
+          actionLabel="Create episode"
+          onAction={onCreate}
+        />
       )}
 
       {!loading && episodes.length > 0 && (
         <div className="table-wrap">
-          <table className="data-table">
+          <table className="data-table episodes-table">
             <thead>
               <tr>
                 <th>Title</th>
@@ -178,39 +118,60 @@ export function EpisodesScreen({
             <tbody>
               {episodes.map((episode) => (
                 <tr key={episode.id}>
-                  <td>{episode.title}</td>
+                  <td className="episodes-table__title">{episode.title}</td>
                   <td>
                     <code>{episode.slug}</code>
                   </td>
-                  <td>{formatDateTime(episode.createdAt)}</td>
-                  <td>{formatDateTime(episode.updatedAt)}</td>
-                  <td>
-                    <div className="btn-group">
-                      <button type="button" className="btn" onClick={() => onEdit(episode.id)}>
-                        Edit
-                      </button>
+                  <td className="episodes-table__date">{formatDateTime(episode.createdAt)}</td>
+                  <td className="episodes-table__date">{formatDateTime(episode.updatedAt)}</td>
+                  <td className="episode-actions-cell">
+                    <div className="episode-actions">
+                      <div className="episode-actions__group" aria-label="Primary actions">
+                        <button
+                          type="button"
+                          className="btn btn--compact btn--primary"
+                          onClick={() => onEdit(episode.id)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn--compact"
+                          onClick={() => onOpenQuestions(episode.id)}
+                        >
+                          Questions
+                        </button>
+                      </div>
+                      <div className="episode-actions__group" aria-label="Workflow actions">
+                        <button
+                          type="button"
+                          className="btn btn--compact"
+                          onClick={() => onValidate(episode.id)}
+                        >
+                          Validate
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn--compact"
+                          onClick={() => onExport(episode.id)}
+                        >
+                          Export
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn--compact"
+                          onClick={() => onPreview(episode.id)}
+                          title="Preview legacy MySQL row shape"
+                        >
+                          Preview
+                        </button>
+                      </div>
                       <button
                         type="button"
-                        className="btn btn--danger"
+                        className="btn btn--compact btn--danger"
                         onClick={() => void handleDelete(episode)}
                       >
                         Delete
-                      </button>
-                      <button
-                        type="button"
-                        className="btn"
-                        onClick={() => onOpenQuestions(episode.id)}
-                      >
-                        Open Questions
-                      </button>
-                      <button type="button" className="btn" onClick={() => onValidate(episode.id)}>
-                        Validate
-                      </button>
-                      <button type="button" className="btn" onClick={() => onPreview(episode.id)}>
-                        Compatibility Preview
-                      </button>
-                      <button type="button" className="btn" onClick={() => onExport(episode.id)}>
-                        Export
                       </button>
                     </div>
                   </td>

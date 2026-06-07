@@ -92,6 +92,7 @@ describe('Manifest builder', () => {
       producerName: 'Jane Doe'
     })
     expect(manifest.appVersion).toBe('0.1.0')
+    expect(manifest.formatVersion).toBe(1)
     expect(manifest.exportVersion).toBe('1.0.0')
     expect(new Date(manifest.createdAt).toString()).not.toBe('Invalid Date')
   })

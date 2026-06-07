@@ -3,6 +3,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import AdmZip from 'adm-zip'
 import type { ExportEpisodeResult } from '../../shared/export'
+import type { ExportProgressEvent } from '../../shared/export-progress'
 import * as db from '../db/databaseService'
 import { validateEpisode } from '../validation/validationService'
 import { buildLegacyRows } from '../export/buildLegacyRows'
@@ -10,9 +11,16 @@ import { buildManifest } from '../export/buildManifest'
 import { getSettings } from './settingsService'
 import { logError, logInfo, logWarn } from './loggerService'
 
-/**
- * Opens a native save dialog allowing the user to select the destination ZIP file.
- */
+export type ExportProgressReporter = (progress: ExportProgressEvent) => void
+
+function reportProgress(
+  onProgress: ExportProgressReporter | undefined,
+  step: string,
+  message: string,
+  percent: number
+): void {
+  onProgress?.({ step, message, percent })
+}
 export async function chooseExportDestination(defaultName?: string): Promise<string | null> {
   try {
     const settings = getSettings()
@@ -90,12 +98,14 @@ function assertUniqueMediaTargets(targetRelativePaths: string[]): void {
  */
 export async function exportEpisode(
   episodeId: string,
-  destinationPath: string
+  destinationPath: string,
+  onProgress?: ExportProgressReporter
 ): Promise<ExportEpisodeResult> {
   let tempDir: string | null = null
   let zipPath = ''
 
   try {
+    reportProgress(onProgress, 'prepare', 'Loading episode…', 5)
     const settings = getSettings()
 
     // 1. Fetch episode and stage configs.
@@ -113,6 +123,7 @@ export async function exportEpisode(
     })
 
     // 2. Validate episode.
+    reportProgress(onProgress, 'validate', 'Running validation checks…', 15)
     const validation = await validateEpisode(episodeId)
     if (!validation.isValid) {
       logWarn('export.blocked.validationErrors', 'Episode export blocked by validation errors.', {
@@ -146,6 +157,7 @@ export async function exportEpisode(
     }
 
     // 3. Fetch all questions.
+    reportProgress(onProgress, 'build', 'Building legacy question rows…', 25)
     const questions = await db.listQuestions(episodeId)
 
     // 4. Build legacy rows and media copy plan.
@@ -156,6 +168,7 @@ export async function exportEpisode(
     const manifest = buildManifest(detail.episode, detail.stageConfigs, questions, mediaCopyPlan)
 
     // 6. Create a temporary staging folder inside the workspace.
+    reportProgress(onProgress, 'stage', 'Creating temporary staging folder…', 30)
     const tempDirName = `.temp-export-${episodeId}-${Date.now()}`
     tempDir = path.join(process.cwd(), tempDirName)
     try {
@@ -167,6 +180,7 @@ export async function exportEpisode(
     }
 
     // 7. Write manifest.json.
+    reportProgress(onProgress, 'write-json', 'Writing manifest.json…', 40)
     try {
       fs.writeFileSync(path.join(tempDir, 'manifest.json'), JSON.stringify(manifest, null, 2), 'utf8')
     } catch (error) {
@@ -176,6 +190,7 @@ export async function exportEpisode(
     }
 
     // 8. Write db/questions.json.
+    reportProgress(onProgress, 'write-json', 'Writing db/questions.json…', 45)
     const dbDir = path.join(tempDir, 'db')
     try {
       fs.mkdirSync(dbDir, { recursive: true })
@@ -187,7 +202,16 @@ export async function exportEpisode(
     }
 
     // 9. Copy media files according to plan.
-    for (const plan of mediaCopyPlan) {
+    const totalMedia = mediaCopyPlan.length
+    for (let index = 0; index < mediaCopyPlan.length; index += 1) {
+      const plan = mediaCopyPlan[index]
+      const mediaPercent = totalMedia > 0 ? 50 + Math.round(((index + 1) / totalMedia) * 30) : 80
+      reportProgress(
+        onProgress,
+        'copy-media',
+        `Copying media ${index + 1} of ${totalMedia}…`,
+        mediaPercent
+      )
       const destFile = path.join(tempDir, plan.targetRelativePath)
       const destSubDir = path.dirname(destFile)
       try {
@@ -232,6 +256,7 @@ export async function exportEpisode(
     }
 
     // 10. Create the ZIP file.
+    reportProgress(onProgress, 'zip', 'Creating ZIP archive…', 90)
     const zip = new AdmZip()
     zip.addLocalFolder(tempDir)
 
@@ -273,6 +298,8 @@ export async function exportEpisode(
       episodeSlug: detail.episode.slug,
       zipPath
     })
+
+    reportProgress(onProgress, 'complete', 'Export finished.', 100)
 
     return {
       success: true,

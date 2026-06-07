@@ -98,6 +98,23 @@ describe('validateEpisode', () => {
     )
   })
 
+  it('allows blank choices for stage 3 questions', async () => {
+    vi.mocked(db.listQuestions).mockResolvedValue([
+      createQuestion({
+        stageNo: 3,
+        choiceOne: '',
+        choiceTwo: '',
+        choiceThree: '',
+        choiceFour: '',
+        actualAnswer: 'Typed answer'
+      })
+    ] as never)
+
+    const result = await validateEpisode('ep-1')
+
+    expect(result.errors.filter((issue) => issue.code === 'MISSING_CHOICE')).toHaveLength(0)
+  })
+
   it('reports invalid point values when money amount is missing or not positive whole number', async () => {
     vi.mocked(db.listQuestions).mockResolvedValue([
       createQuestion({ point: -1 })

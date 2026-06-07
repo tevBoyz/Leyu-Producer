@@ -22,11 +22,13 @@
 html,
 body,
 #root {
-  min-height: 100vh;
+  height: 100%;
+  min-height: 100%;
 }
 
 body {
   margin: 0;
+  overflow: hidden;
   background:
     radial-gradient(circle at top right, rgba(87, 161, 255, 0.12), transparent 28%),
     linear-gradient(180deg, #0f1318 0%, #121922 100%);
@@ -43,20 +45,90 @@ code {
   font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
 }
 
+.app-frame {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.app-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.4rem 0.85rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(15, 19, 24, 0.98);
+  flex-shrink: 0;
+  -webkit-app-region: drag;
+}
+
+.app-topbar__title {
+  font-size: 0.82rem;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+
+.fullscreen-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  -webkit-app-region: no-drag;
+}
+
+.fullscreen-toggle__icon {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
 .app-shell {
   display: grid;
-  grid-template-columns: 240px 1fr;
-  min-height: 100vh;
+  grid-template-columns: 260px minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .sidebar {
   border-right: 1px solid var(--border);
-  background: rgba(23, 29, 37, 0.9);
+  background: rgba(23, 29, 37, 0.95);
   backdrop-filter: blur(10px);
   padding: 1rem 0.85rem;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.sidebar__sections {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.15rem;
+}
+
+.sidebar__section {
+  margin-bottom: 0.65rem;
+}
+
+.sidebar__section-label {
+  margin: 0 0 0.35rem;
+  padding: 0 0.5rem;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.sidebar nav {
+  flex: none;
+  min-height: 0;
+  overflow-y: visible;
 }
 
 .sidebar__brand {
@@ -89,6 +161,9 @@ code {
 .nav-list button {
   width: 100%;
   text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
   padding: 0.65rem 0.8rem;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -96,6 +171,34 @@ code {
   color: var(--text);
   cursor: pointer;
   transition: background-color 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+
+.nav-list button:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.nav-list button:disabled:hover,
+.nav-list button:disabled:focus-visible {
+  background: transparent;
+  border-color: var(--border);
+  transform: none;
+}
+
+.nav-list__label {
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.nav-list__hint {
+  font-size: 0.68rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.nav-list button.active .nav-list__hint {
+  color: #b8d4ff;
 }
 
 .nav-list button:hover,
@@ -120,9 +223,23 @@ code {
   border-top: 1px solid var(--border);
 }
 
+.status-bar__label {
+  display: block;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.2rem;
+  color: var(--muted);
+}
+
 .main {
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
   padding: 1.25rem 1.5rem 2rem;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .workspace-header {
@@ -261,6 +378,72 @@ code {
   padding: 1.5rem;
   max-width: 42rem;
   background: rgba(255, 255, 255, 0.02);
+}
+
+.empty-state {
+  display: grid;
+  justify-items: start;
+  gap: 0.65rem;
+  max-width: 36rem;
+  padding: 2rem 1.5rem;
+  border: 1px dashed var(--border-strong);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.empty-state--compact {
+  padding: 1.25rem 1rem;
+}
+
+.empty-state__icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 1.1rem;
+}
+
+.empty-state h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.empty-state p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.episode-actions-cell {
+  min-width: 16rem;
+}
+
+.episode-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+}
+
+.episode-actions__group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding-right: 0.45rem;
+  border-right: 1px solid var(--border);
+}
+
+.episodes-table__title {
+  font-weight: 600;
+  max-width: 14rem;
+}
+
+.episodes-table__date {
+  font-size: 0.82rem;
+  color: var(--muted);
+  white-space: nowrap;
 }
 
 .btn {
@@ -406,6 +589,10 @@ code {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.75rem 1rem;
+}
+
+.form-grid__full-width {
+  grid-column: 1 / -1;
 }
 
 .form-field {
@@ -956,23 +1143,6 @@ code {
   margin: 0 0 0.5rem;
 }
 
-.dev-tools-card {
-  margin-bottom: 1rem;
-  border-color: #6b5a2a;
-}
-
-.dev-tools-card__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 1rem;
-}
-
-.dev-tools-card h3 {
-  margin: 0 0 0.5rem;
-  font-size: 1rem;
-}
-
 .settings-checkbox {
   display: flex;
   align-items: center;
@@ -1025,15 +1195,21 @@ code {
 @media (max-width: 800px) {
   .app-shell {
     grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
   }
 
   .sidebar {
+    height: auto;
+    max-height: none;
     border-right: none;
     border-bottom: 1px solid var(--border);
   }
 
+  .sidebar nav {
+    overflow-y: visible;
+  }
+
   .screen-header,
-  .dev-tools-card__header,
   .export-destination-row {
     flex-direction: column;
   }
@@ -1046,4 +1222,158 @@ code {
   .main {
     padding: 1rem;
   }
+}
+
+/* Startup gate */
+.startup-gate {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+}
+
+.startup-gate__panel {
+  width: min(100%, 34rem);
+  padding: 1.25rem 1.35rem;
+}
+
+.startup-gate__header {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.startup-gate__eyebrow {
+  margin: 0 0 0.25rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.startup-gate__header h1 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.startup-spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid rgba(87, 161, 255, 0.2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.startup-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.startup-checklist__item {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--border);
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.startup-checklist__item--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.startup-checklist__item:last-child {
+  border-bottom: none;
+}
+
+.startup-checklist__icon {
+  width: 1.35rem;
+  height: 1.35rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.startup-checklist__item--ok .startup-checklist__icon {
+  background: rgba(104, 212, 156, 0.15);
+  color: var(--success);
+}
+
+.startup-checklist__item--fail .startup-checklist__icon {
+  background: rgba(239, 143, 152, 0.15);
+  color: var(--danger);
+}
+
+.startup-checklist__item strong {
+  display: block;
+  font-size: 0.92rem;
+}
+
+.startup-checklist__item span {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.startup-gate__ready-note {
+  margin: 0.75rem 0 0;
+  color: var(--success);
+  font-size: 0.9rem;
+}
+
+.loading-panel {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+/* Export progress */
+.export-progress-card {
+  margin-bottom: 1rem;
+}
+
+.export-progress-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.progress-bar {
+  height: 0.55rem;
+  border-radius: 999px;
+  background: rgba(87, 161, 255, 0.15);
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.progress-bar__fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3d7fd6, var(--accent));
+  border-radius: inherit;
+  transition: width 0.25s ease;
+}
+
+.export-success-card .btn-group {
+  margin-top: 0.75rem;
 }

@@ -2,7 +2,9 @@
 // NOT the live MySQL `questions` database used by the operator dashboard.
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  output        = "../generated/prisma"
+  binaryTargets = ["native"]
 }
 
 datasource db {

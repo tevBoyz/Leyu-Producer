@@ -1,4 +1,4 @@
-import { APP_VERSION, EXPORT_VERSION } from '../../shared/constants'
+import { APP_VERSION, EXPORT_VERSION, PACKAGE_FORMAT_VERSION } from '../../shared/constants'
 import type { Episode } from '../../shared/episode'
 import type { StageConfig } from '../../shared/stage-config'
 import type { Question } from '../../shared/question'
@@ -40,6 +40,9 @@ export interface ExportManifestTotals {
 }
 
 export interface ExportManifest {
+  /** Required by live dashboard Episode Import — integer package schema version (currently 1). */
+  formatVersion: number
+  /** Producer semver for export tooling / diagnostics. */
   exportVersion: string
   appVersion: string
   createdAt: string
@@ -106,6 +109,7 @@ export function buildManifest(
   }))
 
   return {
+    formatVersion: PACKAGE_FORMAT_VERSION,
     exportVersion: EXPORT_VERSION,
     appVersion: APP_VERSION,
     createdAt: new Date().toISOString(),

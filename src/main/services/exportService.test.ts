@@ -187,6 +187,8 @@ describe('exportEpisode', () => {
     const manifest = JSON.parse(manifestContent)
     const questions = JSON.parse(questionsContent)
 
+    expect(manifest.formatVersion).toBe(1)
+
     expect(manifestContent).toBe(JSON.stringify(manifest, null, 2))
     expect(questionsContent).toBe(JSON.stringify(questions, null, 2))
 

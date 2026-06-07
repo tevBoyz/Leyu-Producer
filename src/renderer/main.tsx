@@ -18,7 +18,14 @@ function createUnavailableProducerApi(): ProducerApi {
       ping: async () => ({ ok: false, message: 'IPC unavailable' }),
       isPackaged: async () => false,
       getLogFilePath: async () => reject(),
-      openLogsFolder: async () => reject()
+      openLogsFolder: async () => reject(),
+      getStartupStatus: async () =>
+        reject()
+    },
+    window: {
+      isFullScreen: async () => false,
+      toggleFullScreen: async () => false,
+      subscribeFullScreenChanged: () => () => undefined
     },
     episodes: {
       create: async () => reject(),
@@ -49,7 +56,10 @@ function createUnavailableProducerApi(): ProducerApi {
       resetSettings: async () => reject()
     },
     chooseExportDestination: async () => reject(),
-    exportEpisode: async () => reject()
+    exportEpisode: async () => reject(),
+    subscribeExportProgress: () => () => undefined,
+    showExportInFolder: async () => reject(),
+    openExportFolder: async () => reject()
   }
 }
 

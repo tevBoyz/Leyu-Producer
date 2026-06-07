@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { QUESTION_TYPES } from '../../../shared/constants'
+import { areChoicesRequiredForStage } from '../../../shared/question-rules'
 import type { QuestionType } from '../../../shared/question-type'
 import { Alert } from '../Alert'
 import { FormField } from '../forms/FormField'
@@ -33,6 +34,9 @@ export function QuestionForm({
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [answerMode, setAnswerMode] = useState<'choice' | 'manual'>(() => {
+    if (!areChoicesRequiredForStage(initial.stageNo)) {
+      return 'manual'
+    }
     const choices = getChoiceList(initial)
     return choices.includes(initial.actualAnswer.trim()) || !initial.actualAnswer.trim()
       ? 'choice'
@@ -40,6 +44,8 @@ export function QuestionForm({
   })
 
   const choiceOptions = useMemo(() => getChoiceList(form), [form])
+  const choicesRequired = areChoicesRequiredForStage(form.stageNo)
+  const choiceLabelSuffix = choicesRequired ? '' : ' (optional)'
 
   function getChoiceList(values: QuestionFormValues): string[] {
     return [values.choiceOne, values.choiceTwo, values.choiceThree, values.choiceFour]
@@ -139,28 +145,34 @@ export function QuestionForm({
         </FormField>
 
         <div className="form-grid">
-          <FormField label="Choice 1" htmlFor="q-c1" error={errors.choiceOne}>
+          {!choicesRequired && (
+            <p className="muted form-section__hint form-grid__full-width">
+              Stage 3 questions do not require multiple-choice fields. Leave them blank if the
+              round uses audio and a typed answer only.
+            </p>
+          )}
+          <FormField label={`Choice 1${choiceLabelSuffix}`} htmlFor="q-c1" error={errors.choiceOne}>
             <input
               id="q-c1"
               value={form.choiceOne}
               onChange={(e) => update('choiceOne', e.target.value)}
             />
           </FormField>
-          <FormField label="Choice 2" htmlFor="q-c2" error={errors.choiceTwo}>
+          <FormField label={`Choice 2${choiceLabelSuffix}`} htmlFor="q-c2" error={errors.choiceTwo}>
             <input
               id="q-c2"
               value={form.choiceTwo}
               onChange={(e) => update('choiceTwo', e.target.value)}
             />
           </FormField>
-          <FormField label="Choice 3" htmlFor="q-c3" error={errors.choiceThree}>
+          <FormField label={`Choice 3${choiceLabelSuffix}`} htmlFor="q-c3" error={errors.choiceThree}>
             <input
               id="q-c3"
               value={form.choiceThree}
               onChange={(e) => update('choiceThree', e.target.value)}
             />
           </FormField>
-          <FormField label="Choice 4" htmlFor="q-c4" error={errors.choiceFour}>
+          <FormField label={`Choice 4${choiceLabelSuffix}`} htmlFor="q-c4" error={errors.choiceFour}>
             <input
               id="q-c4"
               value={form.choiceFour}

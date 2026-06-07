@@ -26,6 +26,8 @@ import type {
 } from './settings'
 
 import type { StageConfig } from './stage-config'
+import type { ExportProgressEvent } from './export-progress'
+import type { StartupStatus } from './startup'
 import type { ValidationResult } from './validation'
 
 
@@ -52,6 +54,14 @@ export interface ProducerApi {
 
     openLogsFolder: () => Promise<void>
 
+    getStartupStatus: () => Promise<StartupStatus>
+
+  }
+
+  window: {
+    isFullScreen: () => Promise<boolean>
+    toggleFullScreen: () => Promise<boolean>
+    subscribeFullScreenChanged: (listener: (isFullScreen: boolean) => void) => () => void
   }
 
   episodes: {
@@ -140,6 +150,17 @@ export interface ProducerApi {
     episodeId: string,
     destinationPath: string
   ) => Promise<ExportEpisodeResult>
+
+  /** Subscribe to export progress events from the main process. Returns an unsubscribe function. */
+  subscribeExportProgress: (
+    listener: (progress: ExportProgressEvent) => void
+  ) => () => void
+
+  /** Reveal the exported ZIP in the system file manager. */
+  showExportInFolder: (zipPath: string) => Promise<void>
+
+  /** Open the folder containing the exported ZIP. */
+  openExportFolder: (zipPath: string) => Promise<void>
 }
 
 

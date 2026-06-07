@@ -1,5 +1,6 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, Menu } from 'electron'
 import { join } from 'path'
+import { IPC_CHANNELS } from '../shared/ipc-channels'
 import { connectDatabase, disconnectDatabase } from './db/client'
 import { runMigrations } from './db/migrate'
 import { registerIpcHandlers } from './ipc/registerHandlers'
@@ -15,6 +16,8 @@ function createWindow(): void {
     minWidth: 900,
     minHeight: 600,
     show: false,
+    fullscreen: true,
+    autoHideMenuBar: true,
     webPreferences: {
       preload: join(__dirname, '../preload/index.mjs'),
       contextIsolation: true,
@@ -25,7 +28,16 @@ function createWindow(): void {
   })
 
   mainWindow.once('ready-to-show', () => {
+    mainWindow?.setFullScreen(true)
     mainWindow?.show()
+  })
+
+  mainWindow.on('enter-full-screen', () => {
+    mainWindow?.webContents.send(IPC_CHANNELS.window.fullScreenChanged, true)
+  })
+
+  mainWindow.on('leave-full-screen', () => {
+    mainWindow?.webContents.send(IPC_CHANNELS.window.fullScreenChanged, false)
   })
 
   if (process.env.ELECTRON_RENDERER_URL) {
@@ -72,6 +84,8 @@ app.whenReady()
       appVersion: app.getVersion(),
       packaged: app.isPackaged
     })
+
+    Menu.setApplicationMenu(null)
 
     await connectDatabase()
     await runMigrations()

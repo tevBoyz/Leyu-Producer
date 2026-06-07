@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { EpisodeDetail } from '../shared/db-inputs'
 import type { Question } from '../shared/question'
 import type { ProducerAppSettings } from '../shared/settings'
+import type { StartupStatus } from '../shared/startup'
 import type { ValidationResult } from '../shared/validation'
+import { StartupGate } from './components/StartupGate'
 import { AppShell } from './layout/AppShell'
-import { NAV_ITEMS, type ScreenId } from './navigation'
+import { getNavLabel, type ScreenId } from './navigation'
 import { EpisodeEditorScreen } from './screens/EpisodeEditorScreen'
 import { EpisodesScreen } from './screens/EpisodesScreen'
 import { ExportScreen } from './screens/ExportScreen'
@@ -21,8 +23,9 @@ interface EditorRoute {
 }
 
 export default function App(): React.ReactElement {
+  const [startupComplete, setStartupComplete] = useState(false)
   const [screen, setScreen] = useState<ScreenId>('episodes')
-  const [ipcStatus, setIpcStatus] = useState<string>('Checking IPC...')
+  const [ipcStatus, setIpcStatus] = useState<string>('Starting…')
   const [editorRoute, setEditorRoute] = useState<EditorRoute | null>(null)
   const [selectedEpisodeId, setSelectedEpisodeId] = useState<string | null>(null)
   const [listRefreshKey, setListRefreshKey] = useState(0)
@@ -32,24 +35,16 @@ export default function App(): React.ReactElement {
   const [selectedEpisodeValidation, setSelectedEpisodeValidation] = useState<ValidationResult | null>(null)
   const [appSettings, setAppSettings] = useState<ProducerAppSettings | null>(null)
 
-  useEffect(() => {
-    async function loadStartupContext(): Promise<void> {
-      try {
-        const [version, ping, settings] = await Promise.all([
-          window.producerApi.app.getVersion(),
-          window.producerApi.app.ping(),
-          window.producerApi.settings.getSettings()
-        ])
-
-        setIpcStatus(`v${version} - ${ping.message}`)
-        setAppSettings(settings)
-      } catch (error) {
-        console.error('[producer] failed to load startup context', error)
-        setIpcStatus('IPC unavailable (not running in Electron?)')
-      }
+  const handleStartupReady = useCallback(async (status: StartupStatus) => {
+    setIpcStatus(`v${status.appVersion} — ready`)
+    try {
+      const settings = await window.producerApi.settings.getSettings()
+      setAppSettings(settings)
+    } catch {
+      // Settings were already checked during startup; workspace can still open.
     }
-
-    void loadStartupContext()
+    setStartupComplete(true)
+    setListRefreshKey((value) => value + 1)
   }, [])
 
   useEffect(() => {
@@ -132,7 +127,16 @@ export default function App(): React.ReactElement {
     setAppSettings(settings)
   }
 
-  const activeScreenLabel = NAV_ITEMS.find((item) => item.id === screen)?.label ?? 'Workspace'
+  if (!startupComplete) {
+    return <StartupGate onReady={(status) => void handleStartupReady(status)} />
+  }
+
+  const activeScreenLabel =
+    screen === 'episode-editor'
+      ? editorRoute?.mode === 'create'
+        ? 'Create episode'
+        : 'Edit episode'
+      : getNavLabel(screen)
   const selectedEpisodeSummary = selectedEpisodeDetail
     ? buildEpisodeWorkspaceSummary(
         selectedEpisodeDetail,
@@ -144,6 +148,7 @@ export default function App(): React.ReactElement {
   return (
     <AppShell
       activeScreen={screen}
+      selectedEpisodeId={selectedEpisodeId}
       onNavigate={setScreen}
       ipcStatus={ipcStatus}
       activeScreenLabel={activeScreenLabel}
@@ -173,21 +178,33 @@ export default function App(): React.ReactElement {
           />
         ) : (
           <PlaceholderScreen
-            title="Episode Editor"
-            description="Open an episode from the Episodes list (Edit) or click Create Episode."
+            title="No episode open for editing"
+            description="Use Create Episode on the Episodes screen, or click Edit on an existing episode."
+            actionLabel="Go to Episodes"
+            onAction={() => setScreen('episodes')}
           />
         ))}
 
       {screen === 'questions' && (
-        <QuestionsScreen episodeId={selectedEpisodeId} onDataChanged={handleWorkspaceDataChanged} />
+        <QuestionsScreen
+          episodeId={selectedEpisodeId}
+          onDataChanged={handleWorkspaceDataChanged}
+          onGoToEpisodes={() => setScreen('episodes')}
+        />
       )}
 
-      {screen === 'validation' && <ValidationScreen episodeId={selectedEpisodeId} />}
+      {screen === 'validation' && (
+        <ValidationScreen
+          episodeId={selectedEpisodeId}
+          onGoToEpisodes={() => setScreen('episodes')}
+        />
+      )}
 
       {screen === 'compatibility-preview' && (
         <CompatibilityPreviewScreen
           episodeId={selectedEpisodeId}
           onSelectEpisode={setSelectedEpisodeId}
+          onGoToEpisodes={() => setScreen('episodes')}
         />
       )}
 

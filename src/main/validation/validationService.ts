@@ -1,5 +1,6 @@
 import { existsSync } from 'fs'
 import { extname } from 'path'
+import { areChoicesRequiredForStage } from '../../shared/question-rules'
 import { DEFAULT_STAGE_CONFIGS } from '../../shared/constants'
 import {
   SUPPORTED_IMAGE_EXTENSIONS,
@@ -103,6 +104,10 @@ function validateQuestion(
   ]
 
   for (const { field, value } of choices) {
+    if (!areChoicesRequiredForStage(question.stageNo)) {
+      continue
+    }
+
     if (!value.trim()) {
       pushError(errors, 'MISSING_CHOICE', `Choice (${field}) is required.`, {
         ...ctx,
@@ -122,7 +127,7 @@ function validateQuestion(
     const matchesChoice = choiceValues.some(
       (c) => c.localeCompare(answer, undefined, { sensitivity: 'accent' }) === 0
     )
-    if (choiceValues.length === 4 && !matchesChoice) {
+    if (choiceValues.length === 4 && !matchesChoice && areChoicesRequiredForStage(question.stageNo)) {
       pushWarning(
         warnings,
         'ANSWER_NOT_IN_CHOICES',

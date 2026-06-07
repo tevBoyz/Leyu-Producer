@@ -10,6 +10,7 @@ import { PlaceholderScreen } from './PlaceholderScreen'
 interface Props {
   episodeId: string | null
   onSelectEpisode?: (id: string) => void
+  onGoToEpisodes?: () => void
 }
 
 function formatWarningLocation(warning: ImportCompatibilityWarning): string {
@@ -32,7 +33,8 @@ function formatWarningLocation(warning: ImportCompatibilityWarning): string {
 
 export function CompatibilityPreviewScreen({
   episodeId,
-  onSelectEpisode
+  onSelectEpisode,
+  onGoToEpisodes
 }: Props): React.ReactElement {
   const [episodes, setEpisodes] = useState<Episode[]>([])
   const [selectedEpisodeId, setSelectedEpisodeId] = useState<string>('')
@@ -132,8 +134,10 @@ export function CompatibilityPreviewScreen({
   if (!episodeId && episodes.length === 0 && !loading) {
     return (
       <PlaceholderScreen
-        title="Import Compatibility Preview"
-        description="Create an episode first, then open its compatibility preview."
+        title="No episodes yet"
+        description="Create an episode first, then preview how its questions will look in the legacy MySQL import format."
+        actionLabel={onGoToEpisodes ? 'Go to Episodes' : undefined}
+        onAction={onGoToEpisodes}
       />
     )
   }

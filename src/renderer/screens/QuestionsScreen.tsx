@@ -15,13 +15,18 @@ import { suggestNextQuestionNo } from '../utils/questionHelpers'
 interface Props {
   episodeId: string | null
   onDataChanged?: () => void
+  onGoToEpisodes?: () => void
 }
 
 type EditorState =
   | { mode: 'add'; stageNo: number; questionNo: number }
   | { mode: 'edit'; question: Question }
 
-export function QuestionsScreen({ episodeId, onDataChanged }: Props): React.ReactElement {
+export function QuestionsScreen({
+  episodeId,
+  onDataChanged,
+  onGoToEpisodes
+}: Props): React.ReactElement {
   const [detail, setDetail] = useState<EpisodeDetail | null>(null)
   const [questions, setQuestions] = useState<Question[]>([])
   const [activeStageNo, setActiveStageNo] = useState<number>(1)
@@ -82,8 +87,10 @@ export function QuestionsScreen({ episodeId, onDataChanged }: Props): React.Reac
   if (!episodeId) {
     return (
       <PlaceholderScreen
-        title="Questions"
-        description="Select an episode from the Episodes list and click Open Questions."
+        title="No episode selected"
+        description="Open Episodes, pick a show, then use Questions to author choices, media, and points."
+        actionLabel={onGoToEpisodes ? 'Go to Episodes' : undefined}
+        onAction={onGoToEpisodes}
       />
     )
   }

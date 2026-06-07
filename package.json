@@ -2,13 +2,19 @@
   "name": "leyutune-producer",
   "version": "0.1.0",
   "description": "LeyuTune Producer — episode authoring (separate from live dashboard)",
+  "author": "Dawit T",
   "private": true,
   "type": "module",
   "main": "out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
     "electron:dev": "electron-vite dev",
-    "build": "electron-vite build",
+    "build": "prisma generate && electron-vite build",
+    "dist": "npm run build && node scripts/electron-builder-win.mjs",
+    "prepare:electron": "node scripts/ensure-electron-dist.mjs",
+    "dist:clean": "node scripts/clean-dist.mjs",
+    "dist:fresh": "npm run dist:clean && npm run dist",
+    "dist:dir": "npm run build && node scripts/electron-builder-win.mjs --dir",
     "preview": "electron-vite preview",
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",
@@ -33,11 +39,51 @@
     "@types/react": "^19.1.4",
     "@types/react-dom": "^19.1.5",
     "@vitejs/plugin-react": "^4.5.0",
-    "electron": "^36.3.1",
+    "electron": "^42.3.3",
+    "electron-builder": "^26.15.0",
     "electron-vite": "^3.1.0",
     "prisma": "^6.9.0",
     "typescript": "^5.8.3",
     "vite": "^6.3.5",
     "vitest": "^4.1.8"
+  },
+  "build": {
+    "appId": "com.leyutune.producer",
+    "productName": "LeyuTune Producer",
+    "copyright": "Copyright © 2026",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "out/**/*",
+      "package.json",
+      "prisma/**/*",
+      "generated/prisma/**/*",
+      "node_modules/prisma/**/*",
+      "node_modules/adm-zip/**/*"
+    ],
+    "asarUnpack": [
+      "generated/prisma/**",
+      "node_modules/prisma/**",
+      "prisma/**"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
   }
 }

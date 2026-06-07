@@ -1,16 +1,26 @@
+import { EmptyState } from '../components/EmptyState'
+
 interface Props {
   title: string
   description: string
+  actionLabel?: string
+  onAction?: () => void
 }
 
-export function PlaceholderScreen({ title, description }: Props): React.ReactElement {
+export function PlaceholderScreen({
+  title,
+  description,
+  actionLabel,
+  onAction
+}: Props): React.ReactElement {
   return (
     <section className="screen">
-      <h2>{title}</h2>
-      <p>{description}</p>
-      <div className="placeholder-card">
-        <p>Placeholder — implementation coming in a later phase.</p>
-      </div>
+      <EmptyState
+        title={title}
+        description={description}
+        actionLabel={actionLabel}
+        onAction={onAction}
+      />
     </section>
   )
 }

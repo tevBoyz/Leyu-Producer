@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { ExportProgressEvent } from '../../shared/export-progress'
 import type { Episode } from '../../shared/episode'
 import type { ValidationResult } from '../../shared/validation'
 import { Alert } from '../components/Alert'
@@ -20,7 +21,17 @@ export function ExportScreen({ episodeId, onSelectEpisode }: Props): React.React
   const [exporting, setExporting] = useState(false)
   const [exportStatus, setExportStatus] = useState('')
   const [exportError, setExportError] = useState('')
+  const [exportProgress, setExportProgress] = useState<ExportProgressEvent | null>(null)
   const [exportSuccessPath, setExportSuccessPath] = useState('')
+  const [openingFolder, setOpeningFolder] = useState(false)
+
+  useEffect(() => {
+    const unsubscribe = window.producerApi.subscribeExportProgress((progress) => {
+      setExportProgress(progress)
+      setExportStatus(progress.message)
+    })
+    return unsubscribe
+  }, [])
 
   useEffect(() => {
     window.producerApi.episodes
@@ -109,13 +120,15 @@ export function ExportScreen({ episodeId, onSelectEpisode }: Props): React.React
     setExporting(true)
     setExportError('')
     setExportSuccessPath('')
-    setExportStatus('Running validation, preparing files, and building the export ZIP...')
+    setExportProgress(null)
+    setExportStatus('Starting export…')
 
     try {
       const result = await window.producerApi.exportEpisode(selectedEpisodeId, destinationPath)
 
       if (result.success && result.zipPath) {
         setExportSuccessPath(result.zipPath)
+        setExportStatus('Export finished successfully.')
       } else {
         if (result.validation) {
           setValidationResult(result.validation)
@@ -125,8 +138,31 @@ export function ExportScreen({ episodeId, onSelectEpisode }: Props): React.React
     } catch (saveError) {
       setExportError(saveError instanceof Error ? saveError.message : 'Export failed')
     } finally {
-      setExportStatus('')
       setExporting(false)
+    }
+  }
+
+  async function handleShowInFolder(): Promise<void> {
+    if (!exportSuccessPath) return
+    setOpeningFolder(true)
+    try {
+      await window.producerApi.showExportInFolder(exportSuccessPath)
+    } catch (openError) {
+      setExportError(openError instanceof Error ? openError.message : 'Could not open export location')
+    } finally {
+      setOpeningFolder(false)
+    }
+  }
+
+  async function handleOpenFolder(): Promise<void> {
+    if (!exportSuccessPath) return
+    setOpeningFolder(true)
+    try {
+      await window.producerApi.openExportFolder(exportSuccessPath)
+    } catch (openError) {
+      setExportError(openError instanceof Error ? openError.message : 'Could not open export folder')
+    } finally {
+      setOpeningFolder(false)
     }
   }
 
@@ -252,19 +288,48 @@ export function ExportScreen({ episodeId, onSelectEpisode }: Props): React.React
 
       {exportSuccessPath && (
         <div className="alert alert--success export-success-card">
-          <h4>Episode exported successfully.</h4>
+          <h4>Export complete</h4>
+          <p>Your episode package is ready.</p>
           <p>
-            ZIP path:
+            ZIP file:
             <br />
             <code>{exportSuccessPath}</code>
           </p>
+          <div className="btn-group">
+            <button
+              type="button"
+              className="btn btn--primary"
+              disabled={openingFolder}
+              onClick={() => void handleShowInFolder()}
+            >
+              Show in Folder
+            </button>
+            <button
+              type="button"
+              className="btn"
+              disabled={openingFolder}
+              onClick={() => void handleOpenFolder()}
+            >
+              Open Export Folder
+            </button>
+          </div>
         </div>
       )}
 
-      {exportStatus && (
-        <div className="placeholder-card">
-          <p className="muted">{exportStatus}</p>
-        </div>
+      {(exporting || exportProgress) && (
+        <section className="card export-progress-card">
+          <div className="export-progress-card__header">
+            <strong>{exporting ? 'Export in progress' : 'Export status'}</strong>
+            <span>{exportProgress?.percent ?? 0}%</span>
+          </div>
+          <div className="progress-bar" aria-hidden="true">
+            <div
+              className="progress-bar__fill"
+              style={{ width: `${exportProgress?.percent ?? 0}%` }}
+            />
+          </div>
+          <p className="muted">{exportStatus || exportProgress?.message || 'Working…'}</p>
+        </section>
       )}
 
       {validating && <p className="muted">Validating episode status...</p>}

@@ -5,7 +5,13 @@ export const IPC_CHANNELS = {
     ping: 'app:ping',
     isPackaged: 'app:isPackaged',
     getLogFilePath: 'app:getLogFilePath',
-    openLogsFolder: 'app:openLogsFolder'
+    openLogsFolder: 'app:openLogsFolder',
+    getStartupStatus: 'app:getStartupStatus'
+  },
+  window: {
+    isFullScreen: 'window:isFullScreen',
+    toggleFullScreen: 'window:toggleFullScreen',
+    fullScreenChanged: 'window:fullScreenChanged'
   },
   episodes: {
     create: 'episodes:create',
@@ -45,6 +51,9 @@ export const IPC_CHANNELS = {
   },
   export: {
     chooseDestination: 'export:chooseDestination',
-    exportEpisode: 'export:exportEpisode'
+    exportEpisode: 'export:exportEpisode',
+    progress: 'export:progress',
+    showInFolder: 'export:showInFolder',
+    openFolder: 'export:openFolder'
   }
 } as const
