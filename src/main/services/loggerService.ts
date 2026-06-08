@@ -37,6 +37,14 @@ function safeSerializeMeta(meta: unknown): string {
   }
 }
 
+function canWriteToConsole(): boolean {
+  if (process.platform === 'win32') {
+    return Boolean(process.stdout.isTTY)
+  }
+
+  return true
+}
+
 function writeLog(level: LogLevel, event: string, message: string, meta?: unknown): void {
   const line = [
     new Date().toISOString(),
@@ -52,7 +60,13 @@ function writeLog(level: LogLevel, event: string, message: string, meta?: unknow
     ensureLogsDirectory()
     fs.appendFileSync(getLogFilePath(), `${line}\n`, 'utf8')
   } catch (error) {
-    console.error('[producer:logger] failed to write log file', error)
+    if (canWriteToConsole()) {
+      console.error('[producer:logger] failed to write log file', error)
+    }
+  }
+
+  if (!canWriteToConsole()) {
+    return
   }
 
   if (level === 'ERROR') {

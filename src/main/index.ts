@@ -1,11 +1,11 @@
-import { app, BrowserWindow, Menu } from 'electron'
+import { app, BrowserWindow, dialog, Menu } from 'electron'
 import { join } from 'path'
 import { IPC_CHANNELS } from '../shared/ipc-channels'
 import { connectDatabase, disconnectDatabase } from './db/client'
 import { runMigrations } from './db/migrate'
 import { registerIpcHandlers } from './ipc/registerHandlers'
 import { ensureSettingsFile } from './services/settingsService'
-import { logError, logInfo } from './services/loggerService'
+import { getLogFilePath, logError, logInfo } from './services/loggerService'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -101,7 +101,13 @@ app.whenReady()
     logError('app.start.failure', 'LeyuTune Producer failed to start.', {
       error
     })
-    throw error
+
+    const message = error instanceof Error ? error.message : String(error)
+    dialog.showErrorBox(
+      'LeyuTune Producer failed to start',
+      `${message}\n\nDetails were written to:\n${getLogFilePath()}`
+    )
+    app.exit(1)
   })
 
 app.on('window-all-closed', () => {
